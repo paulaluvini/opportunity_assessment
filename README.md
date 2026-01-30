@@ -10,9 +10,7 @@ The workflow is:
 4. **Select priority sectors/products** using those indexes  
    - Trade: `select_activities_trade.ipynb`  
    - Labor: `select_activities_labor.ipynb`  
-
-**Build occupation × education matrix** (`matrix_occupations_education.ipynb`)  
-→ used to classify and filter occupations by education requirements in downstream labor analyses.
+5. **Build occupation × education matrix** (`matrix_occupations_education.ipynb`) used to classify and filter occupations by education requirements in downstream labor analyses.
 ---
 
 ## Repository structure
