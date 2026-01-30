@@ -11,6 +11,8 @@ The workflow is:
    - Trade: `select_activities_trade.ipynb`  
    - Labor: `select_activities_labor.ipynb`  
 
+**Build occupation × education matrix** (`matrix_occupations_education.ipynb`)  
+→ used to classify and filter occupations by education requirements in downstream labor analyses.
 ---
 
 ## Repository structure
@@ -154,6 +156,18 @@ The workflow is:
       - `Proximity Matches` – product–product proximity matches for further exploration.
 
 
+- **`matrix_occupations_education.ipynb` – Build occupation × education matrix**
+  - Constructs a crosswalk between occupations (SOC) and required education levels using national education data.
+  - Classifies occupations by highest typical education requirement (e.g. Associate’s, Bachelor’s, Master’s, Doctoral/professional).
+  - **Inputs:**  
+    - Occupational employment and wage data (OEWS / national aggregates)  
+    - Education-by-occupation table (BLS education requirements)
+  - **Output:**  
+    - `datasets_labor/matrix_occupations_education.csv` (occupation × education-level matrix)
+  - **Used for:**  
+    - Identifying “critical occupations” based on education requirements  
+    - Filtering and grouping occupations in labor demand and workforce gap analyses
+
 ---
 
 ## How everything connects
@@ -185,5 +199,8 @@ The project has **two parallel pipelines** – one for trade, one for labor – 
 3. **`select_activities_labor.ipynb`**  
    → reads those outputs  
    → for a chosen state or metro, ranks industries and exports Excel reports.
+
+4. (Optional) **`matrix_occupations_education.ipynb`**
+   → builds an occupation × education matrix used to flag occupations by required education group.
 
 This structure lets you re–use exactly the same Economic Complexity machinery on both **export** and **labor** data and then compare or combine the diversification opportunities seen from each side.
