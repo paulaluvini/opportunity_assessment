@@ -1,6 +1,6 @@
-# Economic Complexity – Trade & Labor Pipeline
+# Trade & Labor Data Pipeline (Complex Systems Approach)
 
-This repo implements an Economic Complexity pipeline for U.S. states (and metros), combining trade and labor data to compute ECI/PCI, densities, and diversification “opportunity” rankings.
+This repository implements a data pipeline that integrates multiple layers of economic information—trade, labor, and education—using tools from complex systems and network analysis to generate insights on productive structure, specialization patterns, and diversification potential across U.S. states and metropolitan areas. By combining these data layers, the pipeline supports the construction of relational metrics and enables the identification of priority sectors, products, and occupations under different analytical lenses.
 
 The workflow is:
 
@@ -106,10 +106,6 @@ The workflow is:
       - Density (feasibility)
       - Relative COG (strategic value)
       - PCI (complexity)
-      under three alternative criteria:
-        - `low_hanging` (more weight on density)
-        - `balanced`
-        - `long_jump` (more weight on PCI / COG, allowing more ambitious moves)
     - Ranks and marks **Top 25 products** per criterion.
   - Produces a **multi–sheet Excel file** per location:
     - `outputs_trade/outputs_<Location>.xlsx`, e.g. `outputs_trade/outputs_Michigan.xlsx`
@@ -200,5 +196,6 @@ The project has **two parallel pipelines** – one for trade, one for labor – 
 
 4. (Optional) **`matrix_occupations_education.ipynb`**
    → builds an occupation × education matrix used to flag occupations by required education group.
+
 
 This structure lets you re–use exactly the same Economic Complexity machinery on both **export** and **labor** data and then compare or combine the diversification opportunities seen from each side.
