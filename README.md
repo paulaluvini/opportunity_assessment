@@ -11,6 +11,7 @@ The workflow is:
    - Trade: `select_activities_trade.ipynb`  
    - Labor: `select_activities_labor.ipynb`  
 5. **Build occupation × education matrix** (`matrix_occupations_education.ipynb`) used to classify and filter occupations by education requirements in downstream labor analyses.
+
 ---
 
 ## Repository structure
@@ -42,114 +43,39 @@ The workflow is:
 
 ---
 
-- **`create_indexes.ipynb` – Compute Economic Complexity indexes**
-  - Central notebook that takes **either trade or labor data** and produces all the EC metrics.
-  - Parameters:
-    - `data_choice = "trade" / "labor"`
-    - `labor_aggregation = "state" / "metropolitan_area"` (for the labor case)
-  - For **trade**:
-    - Reads `datasets_trade/df_trade_complete.parquet` (unified trade database).
-    - Aggregates by `[location, HS6]` to obtain a value matrix (`trade_value`).
-  - For **labor**:
-    - Reads `df_labor_usa_states.parquet` or `df_labor_usa_metropolitan_area.parquet`
-      from the corresponding `datasets_labor_*` folder.
-    - Aggregates employment by `[location, NAICS]`.
-  - Common steps (for both trade and labor):
-    - Builds a **location–product matrix** `value_level` (value or employment).
-    - Computes **Revealed Comparative Advantage (RCA)** and the binary matrix `M` (1 if RCA ≥ 1).
-    - Runs the standard **Economic Complexity algorithm** to compute:
-      - **ECI** (Economic Complexity Index) per location.
-      - **PCI** (Product Complexity Index) per product.
-    - Computes **Mpa** (location–product presence matrix) from `M`.
-    - Builds the **product–product proximity matrix** using co–export/presence patterns.
-    - Calculates:
-      - **Density** – how close each product is to a location’s existing capabilities.
-      - **Relative density** – density normalized against available options.
-      - **Strategic value / “COG”** – how useful a product is as a stepping stone to more complex products (taking into account proximities and PCI).
-    - Exports to `OUTPUTS_DIR` (depends on mode, see below):
-      - `RCA.parquet`
-      - `Mpa.parquet`
-      - `codes.parquet` (list of product codes: HS6 or NAICS)
-      - `locations.parquet`
-      - `value_level.parquet`
-      - `eci.parquet` (location–level ECI)
-      - `pci.parquet` (product–level PCI)
-      - `proximity.parquet` (product–product network)
-      - `relative_density.parquet`
-      - `relative_cog.parquet`
-
-  - Output folders (by mode):
+- **`create_indexes.ipynb` – Compute network-based specialization and relatedness metrics**
+  - Core notebook that takes either trade or labor data and produces the full set of metrics used throughout the project.
+  - Depending on the mode (`data_choice = "trade"` or `"labor"`), it reads unified trade data (HS6) or labor data (employment by NAICS at the state or metropolitan level) and constructs a location–activity matrix.
+  - It then computes comparative advantage, location- and activity-level complexity scores, product/industry proximities, and feasibility and strategic value indicators (density, relative density, and COG).
+  - Outputs are written to:
     - Trade: `./outputs_trade/`
-    - Labor, states: `./outputs_labor_states/`
-    - Labor, metros: `./outputs_labor_metropolitan_area/`
+    - Labor (states): `./outputs_labor_states/`
+    - Labor (metros): `./outputs_labor_metropolitan_area/`
 
 ---
-
 - **`select_activities_trade.ipynb` – Select trade diversification opportunities**
-  - Assumes **trade mode**:
-    - `data_choice = "trade"`
-    - Uses `./datasets_trade/` and `./outputs_trade/`.
-  - Reads all precomputed EC matrices:
-    - `relative_density.parquet`, `relative_cog.parquet`, `pci.parquet`
-    - `codes.parquet`, `locations.parquet`, `RCA.parquet`, `Mpa.parquet`
-    - `value_level.parquet`, `eci.parquet`, `proximity.parquet`
-  - Sets a **target location**: `loc = "Michigan"` (or any other state).
-  - For that location, it:
-    - Distinguishes between **already specialized** products (M=1) and **non–specialized**.
-    - Builds a full table (`df_full`) with, for each product:
-      - PCI
-      - Density and relative density
-      - Relative “COG” / strategic value
-      - Current specialization status (`mcp`)
-      - Sector information (e.g. NAICS / strategic sector tags, including EV–related sectors).
-    - Constructs **opportunity indexes** combining:
-      - Density (feasibility)
-      - Relative COG (strategic value)
-      - PCI (complexity)
-    - Ranks and marks **Top 25 products** per criterion.
-  - Produces a **multi–sheet Excel file** per location:
-    - `outputs_trade/outputs_<Location>.xlsx`, e.g. `outputs_trade/outputs_Michigan.xlsx`
-    - Sheets include:
-      - `ECI` – location–level ECI summary.
-      - `PCI` – product–level PCI.
-      - `Full database` – full product table with indexes.
-      - `Selected HS` – top products selected by the diversification criteria.
-      - `Specialized Sectors` – sectors where the location is already specialized.
-      - `Not Specialized Sectors` – promising sectors not yet fully developed.
-      - `NAICS Averages` – average PCI/density/COG by NAICS sector.
-      - `Sector Averages` – averages by broader strategic sector categories.
-      - `Proximity Matches` – product–product proximity matches for further exploration.
+  - Uses precomputed trade-based metrics (RCA, ECI, PCI, density, proximity, strategic value).
+  - For a chosen location (e.g. a U.S. state), identifies:
+    - already specialized products, and
+    - promising non-specialized products based on feasibility and strategic value.
+  - Constructs composite opportunity scores under alternative criteria
+    (e.g. feasibility-focused vs. long-jump strategies).
+  - Outputs a multi-sheet Excel report:
+    - `outputs_trade/outputs_<Location>.xlsx`
+    - including ECI/PCI summaries, full product tables, and ranked opportunity lists.
 
 ---
-
-- **`select_activities_labor.ipynb` – Select labor/industry diversification opportunities**
-  - Mirror of the previous notebook but in **labor mode**:
-    - `data_choice = "labor"`
-    - `labor_aggregation = "state"` or `"metropolitan_area"`
-  - Reads the same EC outputs, but from:
-    - `outputs_labor_states/` or `outputs_labor_metropolitan_area/`
-  - Interprets the matrix as **employment by NAICS** instead of trade by HS.
-  - For a chosen location (`loc = "Michigan"` or any other state/metro), it:
-    - Identifies specialized and non–specialized NAICS activities.
-    - Computes the same composite **opportunity index** (density + COG + PCI).
-    - Focuses on identifying **industries** where:
-      - The region has partial or no presence.
-      - Density and COG suggest feasible and strategic upgrading of its labor structure.
-  - Outputs a similar **Excel report**:
+- **`select_activities_labor.ipynb` – Select labor / industry diversification opportunities**
+  - Labor analogue of the trade selection notebook, operating on employment by NAICS.
+  - For a chosen state or metropolitan area:
+    - identifies specialized and non-specialized industries,
+    - ranks diversification opportunities using density, strategic value, and complexity.
+  - Outputs a multi-sheet Excel report:
     - `outputs_labor_states/outputs_<Location>.xlsx` or
       `outputs_labor_metropolitan_area/outputs_<Location>.xlsx`
-    - With sheets for ECI, PCI, full database, selected activities, specialized/non–specialized sectors, NAICS averages, sector averages, and proximity matches. Sheets include:
-      - `ECI` – location–level ECI summary.
-      - `PCI` – product–level PCI.
-      - `Full database` – full product table with indexes.
-      - `Selected HS` – top products selected by the diversification criteria.
-      - `Specialized Sectors` – sectors where the location is already specialized.
-      - `Not Specialized Sectors` – promising sectors not yet fully developed.
-      - `NAICS Averages` – average PCI/density/COG by NAICS sector.
-      - `Sector Averages` – averages by broader strategic sector categories.
-      - `Proximity Matches` – product–product proximity matches for further exploration.
+    - with summaries, full databases, and ranked industry opportunities.
 
-
+---
 - **`matrix_occupations_education.ipynb` – Build occupation × education matrix**
   - Constructs a crosswalk between occupations (SOC) and required education levels using national education data.
   - Classifies occupations by highest typical education requirement (e.g. Associate’s, Bachelor’s, Master’s, Doctoral/professional).
@@ -194,8 +120,22 @@ The project has **two parallel pipelines** – one for trade, one for labor – 
    → reads those outputs  
    → for a chosen state or metro, ranks industries and exports Excel reports.
 
-4. (Optional) **`matrix_occupations_education.ipynb`**
+Both pipelines can have a fourth step: 
+
+4. **`matrix_occupations_education.ipynb`**
    → builds an occupation × education matrix used to flag occupations by required education group.
 
-
 This structure lets you re–use exactly the same Economic Complexity machinery on both **export** and **labor** data and then compare or combine the diversification opportunities seen from each side.
+
+
+## Related repositories & references
+
+Parts of this repository build on, adapt, or are inspired by code and methodological work from the following open-source projects:
+
+- **Paula Luvini. (2024).** datos-Fundar/complejidad_economica_empleo: Complejidad Económica de una provincia a través de datos de empleo (1.0). Zenodo. https://doi.org/10.5281/zenodo.13274055
+  GitHub repository: https://github.com/datos-Fundar/complejidad_economica_empleo  
+  - Source of core implementations for Economic Complexity metrics (ECI, PCI), RCA computation, and proximity/density logic.
+
+- **goljavieglc, Juan Ignacio Cuiule, Marcos Feole, & Juan Pablo Ruiz Nicolini. (2024).** datos-Fundar/complejidad-economica: Complejidad Económica (v1.0). Zenodo. https://doi.org/10.5281/zenodo.13931731
+  GitHub repository: https://github.com/datos-Fundar/complejidad_economica_verde  
+  - Reference implementation for extending complexity and relatedness frameworks to environmental and green-production dimensions.
